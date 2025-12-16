@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PawPrint } from "lucide-react";
 import AuthButtons from "@/components/auth/AuthButtons";
+import UserAuthForm from "@/components/auth/UserAuthForm";
 
 export default function LoginPage() {
     return (
@@ -16,6 +17,21 @@ export default function LoginPage() {
                         <p className="text-[var(--muted)]">
                             登录您的 MyPets 账户
                         </p>
+                    </div>
+
+                    {/* Email/Username/Phone Form */}
+                    <UserAuthForm />
+
+                    {/* Divider */}
+                    <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-[var(--card-border)]"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-4 bg-[var(--card-bg)] text-[var(--muted)]">
+                                或使用社交账号
+                            </span>
+                        </div>
                     </div>
 
                     {/* Auth Buttons */}
