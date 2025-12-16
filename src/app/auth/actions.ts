@@ -25,7 +25,7 @@ export async function login(prevState: any, formData: FormData) {
     if (!isValidEmail(identifier)) {
         // Not a standard email format. Could be Phone or Username.
 
-        // Try Phone Login first (if it's a valid phone number)
+        // A. Try Phone Login first (if it's a valid phone number)
         if (isValidPhone(identifier)) {
             const { error } = await supabase.auth.signInWithPassword({
                 phone: identifier,
@@ -34,14 +34,29 @@ export async function login(prevState: any, formData: FormData) {
             if (!error) {
                 return { success: true, redirectUrl: redirectTo };
             }
-            // Fallthrough if phone login fails (maybe password wrong or not a phone user)
         }
 
-        // Try Username-mapped Email Login
-        // Assumes username users are registered with 'username@mypets.local'
-        const fakeEmail = `${identifier}@mypets.local`;
+        // B. Try to find the EMAIL associated with this USERNAME from public.users
+        // This is crucial for users who registered with "Real Email + Username" but want to login with "Username".
+        const { data: userProfile } = await supabase
+            .from('users')
+            .select('email')
+            .eq('username', identifier)
+            .single();
+
+        let targetEmail;
+
+        if (userProfile?.email) {
+            // Found the real email linked to this username
+            targetEmail = userProfile.email;
+        } else {
+            // Fallback: Assume it's a "Username-Only" user (username@mypets.local)
+            targetEmail = `${identifier}@mypets.local`;
+        }
+
+        // Attempt login with the resolved email
         const { error } = await supabase.auth.signInWithPassword({
-            email: fakeEmail,
+            email: targetEmail,
             password
         });
 
@@ -49,7 +64,7 @@ export async function login(prevState: any, formData: FormData) {
             return { success: true, redirectUrl: redirectTo };
         }
 
-        // If both failed, return generic error
+        // If failed, return generic error
         return { error: "登录失败，请检查账号或密码" };
     }
 
