@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { PawPrint } from "lucide-react";
 import PetCard from "@/components/pets/PetCard";
@@ -18,7 +18,7 @@ const initialFilters: FilterState = {
     maxAge: "",
 };
 
-export default function PetsPage() {
+function PetsContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [pets, setPets] = useState<Pet[]>([]);
@@ -212,5 +212,17 @@ export default function PetsPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function PetsPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="spinner"></div>
+            </div>
+        }>
+            <PetsContent />
+        </Suspense>
     );
 }
