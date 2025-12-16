@@ -95,19 +95,32 @@ export async function signup(prevState: any, formData: FormData) {
         return { error: "请输入有效的手机号或邮箱" };
     }
 
-    const { error } = await supabase.auth.signUp({
-        email: isEmail ? contact : undefined,
-        phone: isPhone ? contact : undefined,
-        password,
-        options: {
-            data: {
-                display_name: username,
-                username: username,
+    let result;
+    if (isPhone) {
+        result = await supabase.auth.signUp({
+            phone: contact,
+            password,
+            options: {
+                data: {
+                    display_name: username,
+                    username: username,
+                }
             }
-        }
-    });
+        });
+    } else {
+        result = await supabase.auth.signUp({
+            email: contact,
+            password,
+            options: {
+                data: {
+                    display_name: username,
+                    username: username,
+                }
+            }
+        });
+    }
 
-    if (error) return { error: error.message };
+    if (result.error) return { error: result.error.message };
 
     return { success: true, redirectUrl: redirectTo };
 }
