@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFormState, useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Loader2, User, Mail, Lock, Phone } from "lucide-react";
 import { login, signup, signupWithUsername } from "@/app/auth/actions";
 
@@ -27,30 +29,50 @@ function SubmitButton({ text, loadingText }: { text: string; loadingText: string
 }
 
 export default function UserAuthForm() {
+    const router = useRouter();
     const [mode, setMode] = useState<"login" | "register">("login");
+
     const [loginState, loginAction] = useFormState(login, null);
     const [registerState, registerAction] = useFormState(signup, null);
     const [usernameRegState, usernameRegAction] = useFormState(signupWithUsername, null);
 
-    // Register method: 'contact' (phone/email) or 'username' (simple)
-    // The user requirement said: "Register can use phone or email" and BEFORE "username password login ... direct register without email".
-    // I will combine them.
-    // Let's provide tabs for "Standard Register (Email/Phone)" and "Quick Register (Username only)"?
-    // Or just one form. Let's make it smart.
-    // The previous plan was: Register Tab: Username AND (Email OR Phone).
-    // Let's stick to that for "Standard".
-    // But for "Username Only" (implied by "Directly/No Email"), maybe we allow just Username + Password?
-    // Let's add a toggle or just allow "Contact" field to be optional IF we implement "Username Only".
-    // The user said: "Login interface add a username/password login... Register can use phone or email".
-    // This implies Register MUST use phone or email? Or CAN use?
-    // "Directly register without using email" was the previous prompt.
-    // "Register can use phone or email" was the LATEST prompt.
-    // So I should support Email/Phone registration.
+    // Handle Login Feedback
+    useEffect(() => {
+        if (loginState?.success) {
+            toast.success("登录成功！欢迎回来");
+            if (loginState.redirectUrl) {
+                // Slight delay to let toast show
+                setTimeout(() => router.push(loginState.redirectUrl!), 500);
+            }
+        } else if (loginState?.error) {
+            toast.error(loginState.error);
+        }
+    }, [loginState, router]);
 
-    // Let's provide a unified Register form:
-    // 1. Username (Required)
-    // 2. Contact (Phone or Email) - Let's make it required based on latest prompt.
-    //    User prompt: "Register can use phone or email".
+    // Handle Register Feedback
+    useEffect(() => {
+        if (registerState?.success) {
+            toast.success("注册成功！即将进入系统");
+            if (registerState.redirectUrl) {
+                setTimeout(() => router.push(registerState.redirectUrl!), 1000);
+            }
+        } else if (registerState?.error) {
+            toast.error(registerState.error);
+        }
+    }, [registerState, router]);
+
+    // Handle Username Register Feedback
+    useEffect(() => {
+        if (usernameRegState?.success) {
+            toast.success("注册成功！即将进入系统");
+            if (usernameRegState.redirectUrl) {
+                setTimeout(() => router.push(usernameRegState.redirectUrl!), 1000);
+            }
+        } else if (usernameRegState?.error) {
+            toast.error(usernameRegState.error);
+        }
+    }, [usernameRegState, router]);
+
 
     return (
         <div className="w-full">
@@ -109,12 +131,6 @@ export default function UserAuthForm() {
                         </div>
                     </div>
 
-                    {loginState?.error && (
-                        <div className="text-red-500 text-sm text-center bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
-                            {loginState.error}
-                        </div>
-                    )}
-
                     <SubmitButton text="立即登录" loadingText="登录中..." />
                 </form>
             ) : (
@@ -168,12 +184,6 @@ export default function UserAuthForm() {
                             </div>
                         </div>
 
-                        {registerState?.error && (
-                            <div className="text-red-500 text-sm text-center bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
-                                {registerState.error}
-                            </div>
-                        )}
-
                         <SubmitButton text="立即注册" loadingText="注册中..." />
                     </form>
 
@@ -203,11 +213,6 @@ export default function UserAuthForm() {
                                 className="col-span-1 px-3 py-2 border border-[var(--input-border)] rounded-xl bg-[var(--input-bg)] text-sm"
                             />
                         </div>
-                        {usernameRegState?.error && (
-                            <div className="text-red-500 text-xs text-center">
-                                {usernameRegState.error}
-                            </div>
-                        )}
                         <SubmitButton text="仅用用户名注册" loadingText="注册中..." />
                     </form>
                 </div>
