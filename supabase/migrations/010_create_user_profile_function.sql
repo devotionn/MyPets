@@ -17,7 +17,7 @@ DECLARE
     result JSONB;
 BEGIN
     INSERT INTO public.users (id, username, email, display_name, role)
-    VALUES (user_id, user_username, user_email, user_display_name, 'user')
+    VALUES (user_id, user_username, user_email, user_display_name, 'publisher')
     ON CONFLICT (id) DO UPDATE
     SET 
         username = COALESCE(users.username, EXCLUDED.username),
