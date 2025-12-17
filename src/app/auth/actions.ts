@@ -136,27 +136,31 @@ export async function signup(prevState: any, formData: FormData) {
         return { error: result.error.message };
     }
 
-    // ★ CRITICAL: Manually insert user profile into public.users ★
-    // Don't rely on database trigger - do it directly here
+    // ★ CRITICAL: Use RPC function with SECURITY DEFINER to insert user profile ★
+    // This bypasses FK constraint issues with anon client
     if (result.data.user) {
         const userId = result.data.user.id;
         const userEmail = isEmail ? contact : null;
 
-        const { error: insertError } = await supabase
-            .from('users')
-            .upsert({
-                id: userId,
-                username: username,
-                email: userEmail,
-                display_name: username,
-                role: 'user',
-            }, { onConflict: 'id' });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: rpcResult, error: rpcError } = await (supabase as any).rpc('create_user_profile', {
+            user_id: userId,
+            user_username: username,
+            user_email: userEmail,
+            user_display_name: username
+        });
 
-        if (insertError) {
-            // Return the actual error to user for debugging
+        if (rpcError) {
             return {
-                error: `注册成功但保存用户资料失败: ${insertError.message}`,
-                debug: { code: insertError.code, details: insertError.details }
+                error: `注册成功但保存用户资料失败: ${rpcError.message}`,
+                debug: { code: rpcError.code, details: rpcError.details }
+            };
+        }
+
+        // Check RPC result
+        if (rpcResult && !rpcResult.success) {
+            return {
+                error: `注册成功但保存用户资料失败: ${rpcResult.error}`,
             };
         }
     } else {
@@ -205,24 +209,28 @@ export async function signupWithUsername(prevState: any, formData: FormData) {
         return { error: error.message };
     }
 
-    // ★ CRITICAL: Manually insert user profile into public.users ★
+    // ★ CRITICAL: Use RPC function with SECURITY DEFINER to insert user profile ★
     if (data.user) {
         const userId = data.user.id;
 
-        const { error: insertError } = await supabase
-            .from('users')
-            .upsert({
-                id: userId,
-                username: username,
-                email: email,
-                display_name: username,
-                role: 'user',
-            }, { onConflict: 'id' });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: rpcResult, error: rpcError } = await (supabase as any).rpc('create_user_profile', {
+            user_id: userId,
+            user_username: username,
+            user_email: email,
+            user_display_name: username
+        });
 
-        if (insertError) {
+        if (rpcError) {
             return {
-                error: `注册成功但保存用户资料失败: ${insertError.message}`,
-                debug: { code: insertError.code, details: insertError.details }
+                error: `注册成功但保存用户资料失败: ${rpcError.message}`,
+                debug: { code: rpcError.code, details: rpcError.details }
+            };
+        }
+
+        if (rpcResult && !rpcResult.success) {
+            return {
+                error: `注册成功但保存用户资料失败: ${rpcResult.error}`,
             };
         }
     } else {
