@@ -45,7 +45,13 @@ export default function UserAuthForm() {
                 setTimeout(() => router.push(loginState.redirectUrl!), 500);
             }
         } else if (loginState?.error) {
-            toast.error(loginState.error);
+            // Show debug info if available
+            const debugInfo = (loginState as any)?.debug;
+            if (debugInfo) {
+                toast.error(`${loginState.error}\n\n调试: 尝试邮箱=${debugInfo.triedEmail}, 数据库有邮箱=${debugInfo.foundInDb}, Supabase错误=${debugInfo.authError}`);
+            } else {
+                toast.error(loginState.error);
+            }
         }
     }, [loginState, router]);
 
@@ -81,8 +87,8 @@ export default function UserAuthForm() {
                 <button
                     onClick={() => setMode("login")}
                     className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${mode === "login"
-                            ? "bg-white dark:bg-gray-700 text-primary-600 shadow-sm"
-                            : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                        ? "bg-white dark:bg-gray-700 text-primary-600 shadow-sm"
+                        : "text-[var(--muted)] hover:text-[var(--foreground)]"
                         }`}
                 >
                     登录
@@ -90,8 +96,8 @@ export default function UserAuthForm() {
                 <button
                     onClick={() => setMode("register")}
                     className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${mode === "register"
-                            ? "bg-white dark:bg-gray-700 text-primary-600 shadow-sm"
-                            : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                        ? "bg-white dark:bg-gray-700 text-primary-600 shadow-sm"
+                        : "text-[var(--muted)] hover:text-[var(--foreground)]"
                         }`}
                 >
                     注册

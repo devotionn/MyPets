@@ -61,7 +61,15 @@ export async function login(prevState: any, formData: FormData) {
             return { success: true, redirectUrl: redirectTo };
         }
 
-        return { error: "登录失败，请检查账号或密码" };
+        // Return detailed error for debugging
+        return {
+            error: `登录失败，请检查账号或密码`,
+            debug: {
+                triedEmail: targetEmail,
+                foundInDb: !!userProfile?.email,
+                authError: error.message
+            }
+        };
     }
 
     // Standard Email Login
