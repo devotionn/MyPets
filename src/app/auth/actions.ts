@@ -153,9 +153,14 @@ export async function signup(prevState: any, formData: FormData) {
             }, { onConflict: 'id' });
 
         if (insertError) {
-            console.error("Failed to insert user profile:", insertError);
-            // Don't fail the signup - auth user was created successfully
+            // Return the actual error to user for debugging
+            return {
+                error: `注册成功但保存用户资料失败: ${insertError.message}`,
+                debug: { code: insertError.code, details: insertError.details }
+            };
         }
+    } else {
+        return { error: "注册失败：未获取到用户ID" };
     }
 
     return { success: true, redirectUrl: redirectTo };
@@ -215,8 +220,13 @@ export async function signupWithUsername(prevState: any, formData: FormData) {
             }, { onConflict: 'id' });
 
         if (insertError) {
-            console.error("Failed to insert user profile:", insertError);
+            return {
+                error: `注册成功但保存用户资料失败: ${insertError.message}`,
+                debug: { code: insertError.code, details: insertError.details }
+            };
         }
+    } else {
+        return { error: "注册失败：未获取到用户ID" };
     }
 
     return { success: true, redirectUrl: redirectTo };
