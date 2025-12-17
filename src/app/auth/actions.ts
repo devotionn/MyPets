@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { headers } from "next/headers";
 
 function isValidEmail(email: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -37,7 +36,6 @@ export async function login(prevState: any, formData: FormData) {
         }
 
         // B. Try to find the EMAIL associated with this USERNAME from public.users
-        // This is crucial for users who registered with "Real Email + Username" but want to login with "Username".
         const { data: userProfile } = await supabase
             .from('users')
             .select('email')
@@ -47,7 +45,6 @@ export async function login(prevState: any, formData: FormData) {
         let targetEmail;
 
         if (userProfile?.email) {
-            // Found the real email linked to this username
             targetEmail = userProfile.email;
         } else {
             // Fallback: Assume it's a "Username-Only" user (username@mypets.local)
@@ -64,7 +61,6 @@ export async function login(prevState: any, formData: FormData) {
             return { success: true, redirectUrl: redirectTo };
         }
 
-        // If failed, return generic error
         return { error: "登录失败，请检查账号或密码" };
     }
 
@@ -92,7 +88,7 @@ export async function signup(prevState: any, formData: FormData) {
         return { error: "请填写所有必填项" };
     }
 
-    // Check username uniqueness (Public query)
+    // Check username uniqueness
     const { data: existingUser } = await supabase
         .from("users")
         .select("id")
@@ -103,13 +99,14 @@ export async function signup(prevState: any, formData: FormData) {
         return { error: "该用户名已被使用" };
     }
 
-    let isPhone = isValidPhone(contact);
-    let isEmail = isValidEmail(contact);
+    const isPhone = isValidPhone(contact);
+    const isEmail = isValidEmail(contact);
 
     if (!isPhone && !isEmail) {
         return { error: "请输入有效的手机号或邮箱" };
     }
 
+    // Perform auth signup
     let result;
     if (isPhone) {
         result = await supabase.auth.signUp({
@@ -135,7 +132,31 @@ export async function signup(prevState: any, formData: FormData) {
         });
     }
 
-    if (result.error) return { error: result.error.message };
+    if (result.error) {
+        return { error: result.error.message };
+    }
+
+    // ★ CRITICAL: Manually insert user profile into public.users ★
+    // Don't rely on database trigger - do it directly here
+    if (result.data.user) {
+        const userId = result.data.user.id;
+        const userEmail = isEmail ? contact : null;
+
+        const { error: insertError } = await supabase
+            .from('users')
+            .upsert({
+                id: userId,
+                username: username,
+                email: userEmail,
+                display_name: username,
+                role: 'user',
+            }, { onConflict: 'id' });
+
+        if (insertError) {
+            console.error("Failed to insert user profile:", insertError);
+            // Don't fail the signup - auth user was created successfully
+        }
+    }
 
     return { success: true, redirectUrl: redirectTo };
 }
@@ -161,7 +182,7 @@ export async function signupWithUsername(prevState: any, formData: FormData) {
         return { error: "用户名已存在" };
     }
 
-    // Construct fake email
+    // Construct fake email for username-only registration
     const email = `${username}@mypets.local`;
 
     const { data, error } = await supabase.auth.signUp({
@@ -177,6 +198,25 @@ export async function signupWithUsername(prevState: any, formData: FormData) {
 
     if (error) {
         return { error: error.message };
+    }
+
+    // ★ CRITICAL: Manually insert user profile into public.users ★
+    if (data.user) {
+        const userId = data.user.id;
+
+        const { error: insertError } = await supabase
+            .from('users')
+            .upsert({
+                id: userId,
+                username: username,
+                email: email,
+                display_name: username,
+                role: 'user',
+            }, { onConflict: 'id' });
+
+        if (insertError) {
+            console.error("Failed to insert user profile:", insertError);
+        }
     }
 
     return { success: true, redirectUrl: redirectTo };
